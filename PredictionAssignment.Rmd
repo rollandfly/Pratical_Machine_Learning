@@ -1,0 +1,108 @@
+---
+title: "Prediction Assignment Writeup"
+author: "DV"
+date: "22/04/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r,message=FALSE}
+library(tinytex)
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(randomForest)
+
+library(doParallel)
+cluster <- makeCluster(3) 
+registerDoParallel(cluster)
+```
+
+## Data importation
+```{r}
+training <- read.csv('pml-training.csv', na.strings=c("NA", "#DIV/0!"))
+testing <- read.csv('pml-testing.csv', na.strings=c("NA", "#DIV/0!"))
+```
+
+## Cleaning Data
+```{r}
+training_C <- select(training, -contains('timestamp'))
+training_C <- select(training_C, -"X")
+training_C <- select(training_C, -"user_name")
+training_C <- select(training_C, -"new_window")
+training_C <- training_C[,colSums(is.na(training_C)) == 0]
+
+testing_C<- select(testing, -contains('timestamp'))
+testing_C <- select(testing_C, -"X")
+testing_C <- select(testing_C, -"user_name")
+testing_C <- select(testing_C, -"new_window")
+testing_C <- testing_C[,colSums(is.na(testing_C)) == 0]
+
+```
+
+# Modeling
+## Model split
+I have split the data in 70% for training.
+
+```{r}
+set.seed(10)
+inTrain <- createDataPartition(training_C$classe, p=0.7, list=F)
+trainingPart <- training_C[inTrain,]
+testingPart <- training_C[-inTrain,]
+```
+
+
+## training Model
+I will compare different solution.
+
+
+
+#### Generalized Boosted Regression
+```{r}
+start_time <- Sys.time()
+model_gbm <- train(classe ~ ., data=trainingPart, method="gbm", verbose=T)
+end_time <- Sys.time()
+accuracy.gbm <- model_gbm$results$Accuracy[as.integer(row.names(model_gbm$bestTune))]
+
+errorRate.gbm <- model_gbm$finalModel$err.rate[model_gbm$finalModel$ntree,1]
+time.gmb<-end_time-start_time
+```
+
+#### Random Forest
+```{r}
+start_time <- Sys.time()
+model_rf <- train(classe ~ ., data=trainingPart, method='rf', verbose=T)
+end_time <- Sys.time()
+
+accuracy.rf <- model_rf$results$Accuracy[as.integer(row.names(model_rf$bestTune))]
+
+errorRate.rf <- model_rf$finalModel$err.rate[model_rf$finalModel$ntree,1]
+
+time.rf<-end_time-start_time
+```
+
+
+
+## Choose of the training model
+```{r}
+a<-matrix(c(accuracy.rf,errorRate.rf,time.rf,accuracy.gbm,errorRate.gbm,time.gmb),nrow=3)
+
+dimnames(a)=list(c("accuracy","error","exe time"),c("rf","gbm"))
+a
+```
+The best prediction is with the random forest.
+
+# Conclusion
+
+We will use the random forest to answer the quiz.
+
+
+# Prediciton for the testing data
+
+```{r}
+quiz_answer<-predict(model_rf$finalModel, newdata=testing_C)
+
+quiz_answer
+```
+
