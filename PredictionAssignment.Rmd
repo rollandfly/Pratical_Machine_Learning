@@ -3,8 +3,8 @@ title: "Prediction Assignment Writeup"
 author: "DV"
 date: "22/04/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r,message=FALSE}
@@ -26,6 +26,8 @@ testing <- read.csv('pml-testing.csv', na.strings=c("NA", "#DIV/0!"))
 ```
 
 ## Cleaning Data
+I will elminate the column with only NA value, column with timestamp, and the name of the user and the reference.
+I do the same for both data to have the same number of column.
 ```{r}
 training_C <- select(training, -contains('timestamp'))
 training_C <- select(training_C, -"X")
@@ -43,7 +45,7 @@ testing_C <- testing_C[,colSums(is.na(testing_C)) == 0]
 
 # Modeling
 ## Model split
-I have split the data in 70% for training.
+I have split the data in 70% for training and 30% for the testing.
 
 ```{r}
 set.seed(10)
@@ -55,8 +57,6 @@ testingPart <- training_C[-inTrain,]
 
 ## training Model
 I will compare different solution.
-
-
 
 #### Generalized Boosted Regression
 ```{r}
@@ -84,7 +84,7 @@ time.rf<-end_time-start_time
 
 
 
-## Choose of the training model
+## Choose of the training model - Cross Validation
 ```{r}
 a<-matrix(c(accuracy.rf,errorRate.rf,time.rf,accuracy.gbm,errorRate.gbm,time.gmb),nrow=3)
 
@@ -92,6 +92,7 @@ dimnames(a)=list(c("accuracy","error","exe time"),c("rf","gbm"))
 a
 ```
 The best prediction is with the random forest.
+the accuray is 99.5% and the sample error is 0.0029. 
 
 # Conclusion
 
